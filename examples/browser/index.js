@@ -10,8 +10,7 @@ const key      = 'greeting'
 const elm = document.getElementById("result")
 
 const ipfs = new IPFS({
-  // dev server: webrtc-star-signalling.cloud.ipfs.team
-  SignalServer: '188.166.203.82:20000',
+  SignalServer: 'star-signal.cloud.ipfs.team', // IPFS dev server
 })
 
 function handleError(e) {
@@ -35,8 +34,8 @@ ipfs.on('ready', () => {
     const idx = Math.floor(Math.random() * creatures.length)
 
     // Set a key-value pair
+    count ++
     db.put(key, "db.put #" + count + " - GrEEtinGs to " + creatures[idx])
-      .then((res) => count ++)
       .then(() => counter.inc()) // Increase the counter by one
       .then(() => log.add(creatures[idx])) // Add an event to 'latest visitors' log
       .then(() => {
@@ -69,5 +68,11 @@ ipfs.on('ready', () => {
   }
 
   // Start query loop when the databse has loaded its history
-  db.events.on('ready', () => setInterval(query, 1000))
+  db.load()
+    .then(() => counter.load())
+    .then(() => log.load())
+    .then(() => {
+      count = counter.value
+      setInterval(query, 1000)
+    })
 })

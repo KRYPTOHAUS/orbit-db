@@ -6,7 +6,13 @@ module.exports = {
       Swarm: ['/ip4/0.0.0.0/tcp/0'],
       Gateway: '/ip4/0.0.0.0/tcp/0'
     },
-    // Bootstrap: []
+    Bootstrap: [],
+    Discovery: {
+      MDNS: {
+        Enabled: true,
+        Interval: 10
+      }
+    }
   },
   daemon2: {
     IpfsDataDir: '/tmp/orbit-db-tests-2',
@@ -15,6 +21,12 @@ module.exports = {
       Swarm: ['/ip4/0.0.0.0/tcp/0'],
       Gateway: '/ip4/0.0.0.0/tcp/0'
     },
-    // Bootstrap: []
-  },
+    Bootstrap: [],
+    Discovery: {
+      MDNS: {
+        Enabled: true,
+        Interval: 10
+      }
+    }
+  }
 }
