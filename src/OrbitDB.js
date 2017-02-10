@@ -85,7 +85,7 @@ class OrbitDB {
     // 'New entry written to database...', after adding a new db entry locally
     // console.log(".WRITE", dbname, hash, this.user.username)
     if(!hash) throw new Error("Hash can't be null!")
-    if(this._pubsub) this._pubsub.publish(dbname, hash)
+    if(this._pubsub) setImmediate(() => this._pubsub.publish(dbname, hash))
   }
 }
 
