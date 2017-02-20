@@ -11,7 +11,7 @@ if (typeof window !== 'undefined')
 // Config
 module.exports = {
   daemons: testDaemons,
-  timeout: 40000,
+  timeout: 60000,
   defaultIpfsDirectory: './ipfs',
   defaultOrbitDBDirectory: './orbit-db',
   dbname: 'abcdefghijklmn',

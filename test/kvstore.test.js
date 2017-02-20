@@ -20,8 +20,8 @@ config.daemons.forEach((IpfsDaemon) => {
       ipfs.on('error', done)
       ipfs.on('ready', () => {
         assert.equal(hasIpfsApiWithPubsub(ipfs), true)
-        client1 = new OrbitDB(ipfs)
-        client2 = new OrbitDB(ipfs)
+        client1 = new OrbitDB(ipfs, 'A')
+        client2 = new OrbitDB(ipfs, 'B')
         done()
       })
     })
@@ -134,46 +134,29 @@ config.daemons.forEach((IpfsDaemon) => {
 
     describe('sync', () => {
       const options = { 
-        replicate: false, 
-        maxHistory: 0 
+        replicate: false,
       }
 
       it('syncs databases', (done) => {
+        const db1 = client1.kvstore(config.dbname, options)
         const db2 = client2.kvstore(config.dbname, options)
-        db2.events.on('write', (dbname, hash) => {
-          assert.equal(db.get('key1'), null)
 
-          db.sync(hash)
-            .then((hash) => {
-              const value = db.get('key1')
-              assert.equal(value, 'hello2')
-              done()
-            })
-            .catch(done)
-        })
-        db2.put('key1', 'hello2')
-      })
+        db1.events.on('error', done)
 
-      it('sync returns the updated log\'s hash', (done) => {
-        let firstHash, secondHash
-        const db2 = client2.kvstore(config.dbname, options)
-        db2.events.on('write', (dbname, hash) => {
-          db.sync(hash)
-            .then((hash) => {
-              const value1 = db.get('key1')
-              const value2 = db.get('key2')
-              assert.equal(value1, 'hello1')
-              assert.equal(value2, 'hello2')
-              assert.notEqual(firstHash, hash)
-              done()
-            })
-            .catch(done)
+        db2.events.on('write', (dbname, hash, entry, heads) => {
+          assert.equal(db1.get('key1'), null)
+          assert.equal(db2.get('key1'), 'hello1')
+          db1.sync(heads)
         })
-        db.events.on('write', (dbname, hash) => {
-          firstHash = hash
-          db2.put('key2', 'hello2')
+
+        db1.events.on('synced', () => {
+          const value = db1.get('key1')
+          assert.equal(value, 'hello1')
+          done()
         })
-        db.put('key1', 'hello1')
+
+        db2.put('key1', 'hello1')
+          .catch(done)
       })
     })
   })

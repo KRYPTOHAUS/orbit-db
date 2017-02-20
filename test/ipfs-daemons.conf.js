@@ -11,6 +11,9 @@ module.exports = {
       MDNS: {
         Enabled: true,
         Interval: 10
+      },
+      webRTCStar: {
+        Enabled: false
       }
     }
   },
@@ -26,6 +29,9 @@ module.exports = {
       MDNS: {
         Enabled: true,
         Interval: 10
+      },
+      webRTCStar: {
+        Enabled: false
       }
     }
   }

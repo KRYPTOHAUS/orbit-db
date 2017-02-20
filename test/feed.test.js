@@ -23,8 +23,8 @@ config.daemons.forEach((IpfsDaemon) => {
       ipfs.on('error', done)
       ipfs.on('ready', () => {
         assert.equal(hasIpfsApiWithPubsub(ipfs), true)
-        client1 = new OrbitDB(ipfs)
-        client2 = new OrbitDB(ipfs)
+        client1 = new OrbitDB(ipfs, 'A')
+        client2 = new OrbitDB(ipfs, 'B')
         done()
       })
     })
@@ -403,50 +403,25 @@ config.daemons.forEach((IpfsDaemon) => {
     describe('sync', () => {
       const options = { 
         replicate: false, 
-        maxHistory: 0 
       }
+
       it('syncs databases', (done) => {
         const db1 = client1.feed(config.dbname, options)
         const db2 = client2.feed(config.dbname, options)
-        db2.events.on('write', (dbname, hash) => {
+        db2.events.on('write', (dbname, hash, entry, heads) => {
           assert.equal(db1.iterator({ limit: -1 }).collect().length, 0)
-
-          db1.sync(hash)
-            .then((hash) => {
-              const items = db1.iterator({ limit: -1 }).collect()
-              assert.equal(items.length, 1)
-              assert.equal(items[0].payload.value, 'hello2')
-              done()
-            })
-            .catch(done)
+          db1.sync(heads)
         })
+
+        db1.events.on('synced', () => {
+          const items = db1.iterator({ limit: -1 }).collect()
+          assert.equal(items.length, 1)
+          assert.equal(items[0].payload.value, 'hello2')
+          done()
+        })
+
         db2.add('hello2')
-      })
-
-      it('sync returns the updated log\'s hash', (done) => {
-        let firstHash, secondHash
-        const db1 = client1.feed(config.dbname, options)
-        const db2 = client2.feed(config.dbname, options)
-        db2.events.on('write', (dbname, hash) => {
-          db1.sync(hash)
-            .then((hash) => {
-              const items1 = db1.iterator({ limit: -1 }).collect()
-              const items2 = db2.iterator({ limit: -1 }).collect()
-              assert.equal(items1.length, 2)
-              assert.equal(items1[0].payload.value, 'hello1')
-              assert.equal(items1[1].payload.value, 'hello2')
-              assert.equal(items2.length, 1)
-              assert.equal(items2[0].payload.value, 'hello2')
-              assert.notEqual(firstHash, hash)
-              done()
-            })
-            .catch(done)
-        })
-        db1.events.on('write', (dbname, hash) => {
-          firstHash = hash
-          db2.add('hello2')
-        })
-        db1.add('hello1')
+          .catch(done)
       })
     })
   })

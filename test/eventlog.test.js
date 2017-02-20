@@ -23,8 +23,8 @@ config.daemons.forEach((IpfsDaemon) => {
       ipfs.on('error', done)
       ipfs.on('ready', () => {
         assert.equal(hasIpfsApiWithPubsub(ipfs), true)
-        client1 = new OrbitDB(ipfs)
-        client2 = new OrbitDB(ipfs)
+        client1 = new OrbitDB(ipfs, 'A')
+        client2 = new OrbitDB(ipfs, 'B')
         done()
       })
     })
@@ -350,6 +350,37 @@ config.daemons.forEach((IpfsDaemon) => {
             assert.equal(messages[2], last(items))
           })
         })
+      })
+    })
+
+    describe('sync', () => {
+      const options = { 
+        replicate: false,
+      }
+
+      it('syncs databases', (done) => {
+        const db1 = client1.eventlog(config.dbname, options)
+        const db2 = client2.eventlog(config.dbname, options)
+
+        db1.events.on('error', (e) => {
+          console.log(e.stack())
+          done(e)
+        })
+
+        db2.events.on('write', (dbname, hash, entry, heads) => {
+          assert.equal(db1.iterator({ limit: -1 }).collect().length, 0)
+          db1.sync(heads)
+        })
+
+        db1.events.on('synced', () => {
+          const items = db1.iterator({ limit: -1 }).collect()
+          assert.equal(items.length, 1)
+          assert.equal(items[0].payload.value, 'hello2')
+          done()
+        })
+
+        db2.add('hello2')
+          .catch(done)
       })
     })
   })

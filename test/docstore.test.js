@@ -22,8 +22,8 @@ config.daemons.forEach((IpfsDaemon) => {
       ipfs.on('error', done)
       ipfs.on('ready', () => {
         assert.equal(hasIpfsApiWithPubsub(ipfs), true)
-        client1 = new OrbitDB(ipfs)
-        client2 = new OrbitDB(ipfs)
+        client1 = new OrbitDB(ipfs, 'A')
+        client2 = new OrbitDB(ipfs, 'B')
         done()
       })
     })
@@ -165,47 +165,26 @@ config.daemons.forEach((IpfsDaemon) => {
 
       const options = { 
         replicate: false, 
-        maxHistory: 0 
+        maxHistory: 0,
       }
 
       it('syncs databases', (done) => {
         const db1 = client1.docstore(config.dbname, options)
         const db2 = client2.docstore(config.dbname, options)
-        db2.events.on('write', (dbname, hash) => {
+
+        db2.events.on('write', (dbname, hash, entry, heads) => {
           assert.deepEqual(db1.get('hello world'), [])
-
-          db1.sync(hash)
-            .then((hash) => {
-              const value = db1.get(doc1._id)
-              assert.deepEqual(value, [doc1])
-              done()
-            })
-            .catch(done)
+          db1.sync(heads)
         })
+
+        db1.events.on('synced', () => {
+          const value = db1.get(doc1._id)
+          assert.deepEqual(value, [doc1])
+          done()
+        })
+
         db2.put(doc1)
-      })
-
-      it('sync returns the updated log\'s hash', (done) => {
-        const db1 = client1.docstore(config.dbname, options)
-        const db2 = client2.docstore(config.dbname, options)
-        let firstHash, secondHash
-        db2.events.on('write', (dbname, hash) => {
-          db1.sync(hash)
-            .then((hash) => {
-              const value1 = db1.get(doc1._id)
-              const value2 = db1.get(doc2._id)
-              assert.deepEqual(value1, [doc1])
-              assert.deepEqual(value2, [doc2])
-              assert.notEqual(firstHash, hash)
-              done()
-            })
-            .catch(done)
-        })
-        db1.events.on('write', (dbname, hash) => {
-          firstHash = hash
-          db2.put(doc2)
-        })
-        db1.put(doc1)
+          .catch(done)
       })
     })
   })

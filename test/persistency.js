@@ -60,18 +60,21 @@ config.daemons.forEach((IpfsDaemon) => {
           entryArr.push(i)
 
         const options = {
+          replicate: false,
           maxHistory: -1,
-          cachePath: testDataDir
+          cachePath: testDataDir,
         }
 
         let db = client1.eventlog(config.dbname, options)
 
+        db.events.on('error', done)
         db.load().then(function () {
           mapSeries(entryArr, (i) => db.add('hello' + i))
             .then(function() {
               db = null
               db = client1.eventlog(config.dbname, options)
-              db.events.on('synced', () => {
+              db.events.on('error', done)
+              db.events.on('ready', () => {
                 try {
                   const items = db.iterator({ limit: -1 }).collect()
                   assert.equal(items.length, entryCount)
@@ -83,6 +86,7 @@ config.daemons.forEach((IpfsDaemon) => {
                 }
               })
               db.load()
+                .catch(done)
             })
             .catch(done)
         }).catch(done)
